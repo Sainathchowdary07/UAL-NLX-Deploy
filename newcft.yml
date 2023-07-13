@@ -1,4 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  AWS::CloudFormation::Capabilities:
+    - CAPABILITY_NAMED_IAM
+    - CAPABILITY_AUTO_EXPAND
 Resources:
   MyPolicy:
     Type: AWS::IAM::ManagedPolicy
