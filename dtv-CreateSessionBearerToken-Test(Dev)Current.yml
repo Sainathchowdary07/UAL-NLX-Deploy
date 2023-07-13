@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  TestLambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: TestLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: "sts:AssumeRole" 
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        - "arn:aws:iam::aws:policy/service-role/AmazonS3ObjectLambdaExecutionRolePolicy"
+        - !Sub "arn:aws:iam::${AWS::AccountId}:policy/dtv-cep-amazon-connect-lambda-role"
+        
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: dtv-CreateSessionBearerToken-Test
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Role: !GetAtt TestLambdaExecutionRole.Arn
+      Code:
+        S3Bucket: dtv-nlx-s3-cep-test1
+        S3Key: test-code.zip
+      Tags:
+        - Key: ApplicationCI
+          Value: dtv
+        - Key: Environment
+          Value: Dev
+      Environment:
+        Variables:
+          client_id_prd: LivePerson_Partner_9FEA8251-71D1-4B05-A9D6-8109F61BF8C7
+          client_id_stg: LivePerson_Partner_9FEA8251-71D1-4B05-A9D6-8109F61BF8C7
+          client_secret_prd: 8jGGz4mryTHZP5P8ztvXvvVY
+          client_secret_stg: dvqDXzN8t97WJCHXW8QxKwQY
+          env_path: stage
+          grant_type: client_credentials
+          prod_endpoint: pualdpauth1.ual.com
+          scope: customerivr
+          stage_endpoint: ivr-qa.ual.com
+
+  MyApi:
+    Type: 'AWS::ApiGatewayV2::Api'
+    Properties:
+      Name: 'dtv-CreateSessionBearerTokenTest'
+      ProtocolType: 'HTTP'
+      CorsConfiguration:
+        AllowMethods:
+          - '*'
+        AllowOrigins:
+          - '*'
+
+  MyIntegration:
+    Type: 'AWS::ApiGatewayV2::Integration'
+    Properties:
+      ApiId: !Ref MyApi
+      IntegrationType: 'AWS_PROXY'
+      IntegrationUri:
+        Fn::Sub:
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Arn}/invocations'
+          - Arn: !GetAtt 'MyLambdaFunction.Arn'
+      PayloadFormatVersion: '2.0'
+
+  MyRoute:
+    Type: 'AWS::ApiGatewayV2::Route'
+    Properties:
+      ApiId: !Ref MyApi
+      RouteKey: 'ANY /ivr/dtv-createSessionBearerTokenTest'
+      AuthorizationType: 'NONE'
+      Target: !Sub 'integrations/${MyIntegration}'
+
+  MyStage:
+    Type: 'AWS::ApiGatewayV2::Stage'
+    Properties:
+      ApiId: !Ref MyApi
+      AutoDeploy: true
+      StageName: '$default'
+      DefaultRouteSettings:
+        DetailedMetricsEnabled: false
+
+  MyLambdaPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref MyLambdaFunction
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyApi}/*' 
+
+Outputs:
+  ApiGatewayEndpoint:
+    Description: "URL for API endpoint"
+    Value: !Sub "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/$default/ivr/dtv-createSessionBearerTokenTest"
