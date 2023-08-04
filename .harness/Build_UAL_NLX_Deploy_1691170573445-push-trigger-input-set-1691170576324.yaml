@@ -1,0 +1,14 @@
+inputSet:
+  name: Build_UAL_NLX_Deploy_1691170573445-push-trigger-input-set
+  identifier: Build_UAL_NLX_Deploy_1691170573445pushtriggerinputset
+  orgIdentifier: default
+  projectIdentifier: DTVPOC
+  pipeline:
+    identifier: Build_UAL_NLX_Deploy_1691170573445
+    properties:
+      ci:
+        codebase:
+          build:
+            type: branch
+            spec:
+              branch: <+trigger.branch>
