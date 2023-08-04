@@ -1,0 +1,33 @@
+pipeline:
+  identifier: Build_UAL_NLX_Deploy_1691170573445
+  name: Build UAL-NLX-Deploy
+  orgIdentifier: default
+  projectIdentifier: DTVPOC
+  properties:
+    ci:
+      codebase:
+        build: <+input>
+        connectorRef: account.Github_OAuth_1691170390359
+        repoName: Sainathchowdary07/UAL-NLX-Deploy
+  stages:
+    - stage:
+        identifier: build
+        name: build
+        spec:
+          cloneCodebase: true
+          execution:
+            steps:
+              - step:
+                  identifier: echo
+                  name: echo
+                  spec:
+                    command: echo hello world
+                  timeout: ""
+                  type: Run
+          platform:
+            arch: Amd64
+            os: Linux
+          runtime:
+            spec: {}
+            type: Cloud
+        type: CI
